@@ -17,10 +17,13 @@
 <script>
 /* ======== CONFIGURACIÓN: rellena esto tras desplegar el Apps Script ======== */
 const CONFIG = {
-  API_URL: "",   // URL de la aplicación web de Apps Script (termina en /exec)
-  TOKEN: "",     // el token de la pestaña Config de tu Google Sheet
+  API_URL: "",   // (opcional) URL de Apps Script si algún día se usa el backend de Google
+  TOKEN: "",
+  LOCAL: true,   // modo definitivo sin servidor: progreso en el móvil + regalitos cifrados
+  NOTIFY: "ZW5yaXF1ZWZlcnJpb3J0aXpAZ21haWwuY29t", // a quién avisar (FormSubmit), en base64
 };
-/* Si API_URL está vacío, la app funciona en MODO DEMO (datos locales y recompensas de ejemplo). */
+/* Regalitos cifrados (AES-GCM). Solo se descifran al desbloquearlos. */
+const SECRET = {"k":"uw2k9Ni88U8mgczuMlpqT6PpQ+ZiP44qlEGTj2pNGh8=","r":[{"id":"primera","label":"Primer día","iv":"YcIMYaEjDulFEA3l","ct":"CvRtXsGMOPSCvuiOicSSyAW0TOqV2SwVCaC/lK57Oks3l9V+l2OqRRtTmaBaHp8D8LU0PeW+XbppA1+quWwYB3Xo3XYyoa1nn6YKkM3kCRVgH7e+dFo+SciYHzRHgLTDvQA9S0N3TD6dQnJD/Sk9qD6HdGb9aWNDbAd6rBp8UGSKg7hdlHqHGDIY5cXqwu7XEiMwFNLEdSPFGkzDw+1etTKqYKzh+KlobgJKKkBEdk3jNFjHi5rJAfTm1gVmTZ40Lm3YxH+7hBd+HaLZMr6cY5/zH6FTa0cQ7bN6cZLBEpIRZINs1fbsBrP7g9GDNZQq422fXbE89YmYwLIHse0="},{"id":"semana1","label":"Semana 1","iv":"FO2Q6KeocTZauL6+","ct":"KkH5ZOTpZQDBbnRgqvW2PzpCsn/fK4N+KklArOPycjfmPiG+mq6L9Hl5Ihx/QDphzRuVTopaJ2wfVWhLA56mEDNY2cjO5OrAfuk2C3U+SmkJ7yDxF3SgYBCxVrc34gfVRaH0GavaFvl/m85jBanA/iMecgFAMIVi0yoodGs/1DcUIlpGGKMPO2e8mow="},{"id":"semana2","label":"Semana 2","iv":"bcOPWM92Hyo/6KcF","ct":"pn9z+F0SDwpb4yBWS/Z+tFS+Ix+VQDpYvAvC8/J8ZMjej4gePkl3ZHhR5cAj8Yt1pGOnGim+iae2UMk6PqEQPU2iStkmjcd/Ny8xcj1LZ6W88vXztkXPE50X+5wEQ1iKl2TtLnaOCyMWClXBEJ2mOiU0dcMyZA=="},{"id":"semana3","label":"Semana 3","iv":"s8MaJQYa4xH2m3Fi","ct":"jXLX9xTwTaxX5TZAu6WwTI8ymNOEswDfJ6rpq+4yNVwuxGh3dmOu6v6+eThg3MKiUhsRmxH3h4W0rv4jy5aLElQl3rwut3uAd0huIvvSzqNpEZBvf7zwuTio+t96RbXyozzOd588q3EC7WA4FRp1P1kv0ny0EEtzbPafOClMwscp0ZiXcv1FdTjpsHM="},{"id":"semana4","label":"Semana 4","iv":"t14N70rZv+4Xqd7F","ct":"D/e5bFVNWS/vHyP/kyA9DNHMkyymud5/OyWBhQVncKF6Md1OZnt4d2ecDujCpMn4zY/gLcd4oPJ88cV048HOj7mcv292JosQBewIku4xjH0TLmuNJ2QG4iy6qYqBTht+vKOc1EGNmYpj9OZqDXSpxeyWL/86FxgYmBb9HVGllMI23AEUdqLuQGs="},{"id":"semana5","label":"Semana 5","iv":"t7oL3gtpjV0Hxqkh","ct":"X59qK9ByWn603SMKbdm7zaOj4vbKKdqNEqgLzUv2x6pKbJNF97cWm0O7X8S4YDOzDvfXEfAzXz5A18/1tU2l7qiP23XWDZwi0C33uq2YYmPaVtqOPkz5m1w7s2hYYUFSAFW6++XhKwmmoaDUSh2jSeZ7VdEG19On+HxTK5NAm9H22os="},{"id":"semana6","label":"Semana 6","iv":"NCAov9b3wE21X7c0","ct":"3jKOz85cdtbreh71VNRAW/+V/tqpEvVT/vvQ+1ZYVaDe7QiaYFmQFV0GWrGSvjqRq4hclQz7oK39Flg367VnVR+zNMqV4kpiGkCUQMiAYz98m/ghBnYGe3YUXKJuVJ0hmQQmLReTrFkX8qzJX3dTz5Mgx55n6So8yvaviO3pyw=="},{"id":"semana7","label":"Semana 7","iv":"2e0DfglvFxWWluy5","ct":"StCsvv3/eezLc2iwV9WpsrxfxFyjy/US54UWfFNIwIIv0aEjUhQylAqgjcJPO74EdIXw6O+7/scqWws8dlbGZw7p6Dqq7iR4ymW7OXEIBHYo8cQSc+XSpD0+GKU9Yt/PyjTSaNnr871dQehelefq78A="},{"id":"semana8","label":"Semana 8","iv":"Wrf9wmtb0B9A+JG7","ct":"44MTKuPjd0Ci2IzfU46L4dPOHofsBrih8yLr6fjO+EJpPnXQg1llDighdG6huQOhEHJnBB1ELxVMJN4p0lHKsUcu6tIJwbxf8sAuYioDPqtus3EmeE9SIW9fY5XJY6xpChAUvI7IFBuO9vUE0OzubxSVSkfb8cb08aBHV9IY2TFc0mw="},{"id":"semana9","label":"Semana 9","iv":"uaytlJidKqbGyWI0","ct":"mQKIGhK182JT2IfaQZUiu2xOW5wDzBDV7mk6J+rrdNsHW3hcqiFCgM6HiavXjKxlj6UhN0pvQGpRXi4KuZYe1AMdcdYxa9pvMKcVX4lWpfgQ7CivefijhZm5/n2CYhFZDppMb0mob93/xOWM6pi069qKfYI="},{"id":"semana10","label":"Semana 10","iv":"xw+/5pOMlM6zUpZc","ct":"fnV3tO9SaGKF7GOSy46korKAufVWzjGbFeHZSWFOVyUY1cTarSE0Tie29YH0lbupO6n5ZgCi4qH7LNN/FkIT49eVg0ZBoDVDP7EE5zJKX6BKwO1rRAAEL399iY3KCovwo9+m1S5ExZwFwSjPyY8eGpHJwJ+F"},{"id":"semana11","label":"Semana 11","iv":"Q39ym43Mb+UQrnOy","ct":"HtFVG5rhvy3Y2a2Gf7tI5xz27RR4iQnxsb19w0RAwR56O+3lb0+8qm3HYUwCciUdfdLimgS5y0uEikDGg1rvHxmBtsgy8Yf5/8mLTGpM6+OUl0xjVwvVcKbT9Oob5MHHV9AEmbo4UFpy9l3TSZdYwT6eiYSXEBdxbi1PqCrAZ+BpZh8Gf6gzf1/7IdKu"},{"id":"semana12","label":"Semana 12","iv":"3VNgjmMAhvOirCD/","ct":"31UavldU5BPjtUVuXIocnwiDbsd8Am7i9fjTzh3K22F0H0f/o2/UVQB4pFtYMsPu4c0yimrfVZwX4EqNjgpC7CMrLNy+kFCwZtXa3olgCZXJyrHcu/CBt+aysnZgjJ5xWhzSzbisfg+koWRXeFdGk65FGxsz8PUy1RRMvzUmGwKzXg=="}]};
 </script>
 <style>
 :root{
@@ -348,6 +351,10 @@ summary{cursor:pointer;font-weight:600;padding:8px 0}
   </section>
 </div>
 
+<div id="installHint" style="display:none;position:fixed;left:12px;right:12px;bottom:calc(var(--safe-b) + 86px);z-index:30;background:#fff;color:#4a3570;border-radius:20px;padding:12px 14px;font-size:15px;box-shadow:0 8px 24px #0006">
+  🐣 <b>Instálame:</b> pulsa <b>Compartir</b> ⬆️ y luego <b>Añadir a pantalla de inicio</b>. Usa siempre la app desde el icono: ahí se guarda tu progreso.
+  <button id="installX" style="float:right;font-weight:700;color:#4a3570">✕</button>
+</div>
 <nav><div class="in">
   <button class="active" data-tab="study"><span class="e">🌷</span>Estudiar</button>
   <button data-tab="rewards"><span class="badge" id="rewBadge"></span><span class="e">🎀</span>Regalitos</button>
@@ -371,6 +378,15 @@ summary{cursor:pointer;font-weight:600;padding:8px 0}
       <li>Opcional: <b>Iniciar temporizador</b> de <i>Números</i> minutos, para que suene aunque la app esté cerrada.</li>
     </ol>
     <p>Al pulsar Empezar, la app abre Atajos un segundo, se activa la concentración y vuelves deslizando. Se apaga sola al acabar el bloque.</p>
+  </details>
+  <details id="backupBox" style="display:none">
+    <summary>Copia de seguridad 💾</summary>
+    <p>Tu progreso se guarda en este móvil. Copia este código de vez en cuando (por ejemplo, mándatelo por WhatsApp) para poder recuperarlo si cambias de móvil.</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="chip" id="bkCopy"><b>Copiar código</b></button>
+      <button class="chip" id="bkRestore"><b>Restaurar…</b></button>
+    </div>
+    <textarea id="bkText" style="display:none;width:100%;margin-top:10px;min-height:80px;background:var(--card);color:var(--text);border:2px solid var(--line);border-radius:12px;padding:8px;font:inherit"></textarea>
   </details>
   <div id="demoTools" style="display:none">
     <details open>
@@ -447,7 +463,8 @@ summary{cursor:pointer;font-weight:600;padding:8px 0}
 <script>
 (() => {
 "use strict";
-const DEMO = !CONFIG.API_URL;
+const LOCAL = !CONFIG.API_URL && CONFIG.LOCAL === true;
+const DEMO = !CONFIG.API_URL && !LOCAL;
 const $ = s => document.querySelector(s);
 const LS = {
   get(k, d){ try{ const v = localStorage.getItem('reto:'+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
@@ -529,6 +546,51 @@ function demoState(){
   };
 }
 
+/* ---------- Modo definitivo local ---------- */
+const b64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+let cryptoKey = null; const decCache = {};
+async function decryptReward(r){
+  if(decCache[r.id]) return decCache[r.id];
+  if(!cryptoKey) cryptoKey = await crypto.subtle.importKey('raw', b64(SECRET.k), 'AES-GCM', false, ['decrypt']);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM', iv:b64(r.iv)}, cryptoKey, b64(r.ct));
+  return decCache[r.id] = JSON.parse(new TextDecoder().decode(pt));
+}
+async function localState(){
+  const sessions = LS.get('sessions', []);
+  const p = computeProgress(sessions, LS.get('startDate', null), todayStr());
+  if(!LS.get('startDate', null) && sessions.length) LS.set('startDate', p.startDate);
+  const rewards = [];
+  for(const r of SECRET.r){
+    if(p.unlocks[r.id]){
+      try{ const d = await decryptReward(r); rewards.push({id:r.id, label:r.label, type:d.type, title:d.title, message:d.message, unlocked:true, unlockedAt:p.unlocks[r.id]}); }
+      catch(e){ rewards.push({id:r.id, label:r.label, unlocked:false}); }
+    } else rewards.push({id:r.id, label:r.label, unlocked:false});
+  }
+  return { appName:'Operación Pollito', today:todayStr(), todayMinutes:p.byDay[todayStr()]||0, totalMinutes:p.totalMinutes,
+    daysStudied:p.daysStudied, completed:p.completed, finished:p.finished, current:p.current, rewards };
+}
+/* Avisos por email (FormSubmit). El primer aviso pide confirmar el email una vez. */
+async function notify(subject, text){
+  const to = atob(CONFIG.NOTIFY||''); if(!to || to.indexOf('@')<0) return true;
+  try{
+    const r = await fetch('https://formsubmit.co/ajax/'+encodeURIComponent(to), {method:'POST', headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body: JSON.stringify({_subject: subject, _template:'box', _captcha:'false', mensaje: text})});
+    return r.ok;
+  }catch(e){ return false; }
+}
+let notifying = false;
+async function processNotifications(st){
+  if(!LOCAL || notifying) return; notifying = true;
+  try{
+    const sent = LS.get('notified', []);
+    const hours = (st.totalMinutes/60).toFixed(1);
+    const pending = [];
+    if(st.totalMinutes > 0 && !sent.includes('start')) pending.push(['start', '🐣 ¡Ha empezado la Operación Pollito!', 'Tu chica acaba de hacer su primera sesión de estudio. 💕']);
+    st.rewards.filter(r => r.unlocked && !sent.includes(r.id)).forEach(r => pending.push([r.id, '🎁 Ha desbloqueado: '+r.label+' — '+r.title, '¡Tu chica acaba de desbloquear '+r.label+'!\n\n'+r.title+'\n\nLleva '+hours+' h estudiadas y '+st.completed+'/12 semanas completadas. Toca prepararlo 😉']));
+    for(const [id, subj, txt] of pending){ if(await notify(subj, txt)){ sent.push(id); LS.set('notified', sent); } else break; }
+  } finally { notifying = false; }
+}
+
 /* ---------- Red ---------- */
 async function api(params){
   const u = new URL(CONFIG.API_URL);
@@ -540,6 +602,17 @@ async function api(params){
 }
 let flushing = false;
 async function flush(){
+  if(LOCAL){
+    const moved = queue.slice();
+    if(moved.length){
+      const s = LS.get('sessions', []), have = new Set(s.map(x => x.id));
+      moved.forEach(q => { if(!have.has(q.id)) s.push({date:q.date, minutes:q.minutes, id:q.id}); });
+      LS.set('sessions', s);
+    }
+    const st = await localState();
+    queue = queue.filter(q => !moved.some(m => m.id === q.id)); LS.set('queue', queue);
+    applyState(st); processNotifications(st); return;
+  }
   if(DEMO){
     if(queue.length){
       const s = LS.get('demoSessions', []);
@@ -1038,6 +1111,30 @@ $('#dAddDay').onclick = () => {
 };
 $('#dNext').onclick = () => { LS.set('demoOffset', LS.get('demoOffset',0)+1); T={status:'idle'}; saveT(); hide($('#mSettings')); flush(); say('idle'); toast('Buenos días ☀️ Ahora es '+niceDate(todayStr())); };
 $('#dReset').onclick = () => { ['demoSessions','demoStart','demoOffset','known','opened','doneShown','state','queue','timer'].forEach(k=>{ try{localStorage.removeItem('reto:'+k);}catch(e){} }); location.reload(); };
+
+/* Copia de seguridad e instalación */
+if(LOCAL){
+  $('#backupBox').style.display = '';
+  $('#bkCopy').onclick = async () => {
+    const code = btoa(unescape(encodeURIComponent(JSON.stringify({s:LS.get('sessions',[]), d:LS.get('startDate',null), o:opened, n:LS.get('notified',[])}))));
+    const ta = $('#bkText'); ta.style.display=''; ta.value = code; ta.select();
+    try{ await navigator.clipboard.writeText(code); toast('Código copiado 💾'); }catch(e){ toast('Selecciona el texto y cópialo'); }
+  };
+  $('#bkRestore').onclick = () => {
+    const ta = $('#bkText');
+    if(ta.style.display==='none' || !ta.value.trim()){ ta.style.display=''; ta.value=''; ta.placeholder='Pega aquí tu código y vuelve a pulsar Restaurar'; ta.focus(); return; }
+    try{
+      const d = JSON.parse(decodeURIComponent(escape(atob(ta.value.trim()))));
+      LS.set('sessions', d.s||[]); LS.set('startDate', d.d||null); LS.set('opened', d.o||[]); LS.set('notified', d.n||[]); LS.set('known', null);
+      toast('Progreso restaurado 🌸'); setTimeout(() => location.reload(), 800);
+    }catch(e){ toast('Ese código no es válido'); }
+  };
+  const standalone = window.navigator.standalone === true || matchMedia('(display-mode: standalone)').matches;
+  const ios = /iPhone|iPad|iPod/.test(navigator.platform || '') || (navigator.maxTouchPoints > 1 && /Mac/.test(navigator.platform || ''));
+  if(!standalone && ios && !LS.get('hideInstall', false)){ $('#installHint').style.display=''; }
+  $('#installX').onclick = () => { $('#installHint').style.display='none'; LS.set('hideInstall', true); };
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist(); }catch(e){}
+}
 
 /* ---------- Arranque ---------- */
 syncSwitches();
