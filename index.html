@@ -1,0 +1,1055 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Operación Pollito</title>
+<meta name="theme-color" content="#1a1430">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Op. Pollito">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;700&family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>
+/* ======== CONFIGURACIÓN: rellena esto tras desplegar el Apps Script ======== */
+const CONFIG = {
+  API_URL: "",   // URL de la aplicación web de Apps Script (termina en /exec)
+  TOKEN: "",     // el token de la pestaña Config de tu Google Sheet
+};
+/* Si API_URL está vacío, la app funciona en MODO DEMO (datos locales y recompensas de ejemplo). */
+</script>
+<style>
+:root{
+  --bg:#1a1430; --bg2:#221a3d; --card:#2a2149; --card2:#33285a; --line:#3d3168;
+  --text:#fdf6ff; --muted:#b9abd8; --pink:#ffb3c7; --lav:#cdb8ff; --mint:#a8ead1; --butter:#ffe39a; --peach:#ffc9a8;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font-family:Fredoka,'Arial Rounded MT Bold',system-ui,sans-serif;overscroll-behavior:none}
+body{background:radial-gradient(130% 60% at 50% -5%,#3a2556 0%,#231a40 45%,var(--bg) 80%) fixed}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer}
+.app{position:relative;z-index:1;max-width:520px;margin:0 auto;padding:calc(var(--safe-t) + 14px) 18px calc(var(--safe-b) + 96px)}
+
+/* pétalos flotando */
+.petals{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.petals i{position:absolute;top:-30px;width:12px;height:12px;border-radius:12px 0 12px 0;background:var(--pink);opacity:.35;animation:fall linear infinite}
+.petals i:nth-child(3n){background:var(--lav)} .petals i:nth-child(4n){background:var(--butter);width:8px;height:8px}
+@keyframes fall{0%{transform:translate(0,0) rotate(0)}50%{transform:translate(30px,50vh) rotate(180deg)}100%{transform:translate(-20px,105vh) rotate(360deg)}}
+.stars{position:fixed;inset:0;pointer-events:none;z-index:0;background-image:radial-gradient(1.5px 1.5px at 12% 18%,#fff8 50%,transparent 51%),radial-gradient(1px 1px at 78% 9%,#fff9 50%,transparent 51%),radial-gradient(1.5px 1.5px at 88% 32%,#fff6 50%,transparent 51%),radial-gradient(1px 1px at 30% 6%,#fff7 50%,transparent 51%),radial-gradient(1px 1px at 55% 22%,#fff5 50%,transparent 51%);animation:twinkle 5s ease-in-out infinite alternate}
+@keyframes twinkle{to{opacity:.4}}
+
+header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+header h1{font-size:22px;margin:0;font-weight:700;display:flex;align-items:center;gap:6px}
+header .sub{color:var(--muted);font-size:14px;margin-top:2px}
+.icon-btn{width:44px;height:44px;border-radius:16px;background:var(--card);display:grid;place-items:center;border:2px solid var(--line);font-size:20px}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;background:var(--card);border:2px solid var(--line);font-size:14px;color:var(--muted)}
+.chip b{color:var(--text);font-weight:600}
+.demo-badge{background:#4a3a1a;color:var(--butter);border-color:#6a5524}
+.view{display:none;animation:fade .4s ease}
+.view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* ---- Anillo + corona de flores ---- */
+.ring-zone{position:relative;width:min(84vw,350px);aspect-ratio:1;margin:22px auto 0}
+.ring-zone svg.ring{position:absolute;inset:0;overflow:visible}
+.ring-inner{fill:url(#innerGrad)}
+.ring-bg{stroke:#2e2453}
+.ring-fg{transition:stroke-dashoffset .8s ease;filter:drop-shadow(0 0 6px #ffb3c766)}
+.wreath .fl{transform-box:fill-box;transform-origin:center;transition:transform .7s cubic-bezier(.3,1.8,.5,1)}
+.wreath .bud{transition:opacity .4s}
+.wreath .on .fl{transform:scale(1)} .wreath .off .fl{transform:scale(0)}
+.wreath .on .bud{opacity:0}
+.ring-zone.running .ring-fg{animation:glow 4s ease-in-out infinite}
+@keyframes glow{50%{filter:drop-shadow(0 0 14px #ffb3c7aa)}}
+.ring-in{position:absolute;inset:16%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.ring-phase{font-size:14px;color:var(--muted);font-weight:500}
+.ring-time{font-size:clamp(46px,14vw,62px);font-weight:600;font-variant-numeric:tabular-nums;line-height:1.05;margin:2px 0 4px}
+.ring-today{font-size:15px;color:var(--muted)}
+.ring-today b{color:var(--pink);font-weight:600}
+
+/* mascota */
+.buddy{display:flex;align-items:flex-end;justify-content:center;gap:8px;margin:-8px auto 6px;position:relative}
+.buddy svg{width:96px;height:96px;flex:0 0 96px}
+.bubble{background:#fff;color:#4a3570;padding:9px 13px;border-radius:18px 18px 18px 4px;font-size:15px;font-weight:500;max-width:200px;margin-bottom:46px;box-shadow:0 6px 18px #0004;animation:bob 3s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-4px)}}
+.buddy .st{display:none} .buddy[data-s=idle] .s-idle,.buddy[data-s=study] .s-study,.buddy[data-s=break] .s-break,.buddy[data-s=done] .s-done{display:inline}
+.buddy[data-s=study] svg .head{animation:nod 3s ease-in-out infinite;transform-origin:50px 70px}
+@keyframes nod{50%{transform:rotate(3deg)}}
+.zz{animation:zz 2.4s ease-in-out infinite;transform-origin:center}
+@keyframes zz{0%{opacity:0;transform:translateY(4px)}50%{opacity:1}100%{opacity:0;transform:translateY(-8px)}}
+.hearts{animation:zz 1.6s ease-in-out infinite}
+
+/* bloques del día */
+.blocks{display:flex;gap:6px;justify-content:center;margin:2px 0 14px}
+.blk{height:10px;flex:1;max-width:46px;border-radius:99px;background:#33285a;overflow:hidden}
+.blk span{display:block;height:100%;background:linear-gradient(90deg,var(--pink),var(--lav));border-radius:99px;transition:width .5s}
+
+/* métodos */
+.sect{font-size:14px;color:var(--muted);margin:4px 2px 8px;font-weight:500}
+.methods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.method{padding:10px 6px;border-radius:18px;background:var(--card);border:2px solid var(--line);text-align:center}
+.method .e{font-size:26px;line-height:1.1}
+.method .n{font-weight:600;font-size:15px}
+.method .d{font-size:12.5px;color:var(--muted)}
+.method.sel{border-color:var(--pink);background:linear-gradient(180deg,#43305f,#2f2450);box-shadow:0 0 0 3px #ffb3c722}
+.method:disabled{opacity:.5}
+.controls{display:flex;gap:10px;margin:14px 0 18px}
+.btn{flex:1;height:58px;border-radius:22px;font-weight:600;font-size:18px;background:var(--card);border:2px solid var(--line)}
+.btn.primary{background:linear-gradient(135deg,var(--pink),var(--lav));color:#3d2560;border:0;box-shadow:0 8px 26px #ffb3c740}
+.btn.primary:disabled{opacity:.9;background:linear-gradient(135deg,var(--mint),#bfe9ff)}
+.btn.ghost{flex:.6;color:var(--muted)}
+.card{background:var(--card);border:2px solid var(--line);border-radius:26px;padding:16px}
+.week-card h3{margin:0 0 2px;font-size:17px;font-weight:600}
+.week-card .muted{color:var(--muted);font-size:14px}
+.pots{display:flex;justify-content:space-between;margin-top:10px}
+.pot{width:40px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--muted)}
+.pot svg{width:40px;height:48px}
+.pot.today{color:var(--text);font-weight:600}
+.pot.future{opacity:.45}
+.focus-row{margin-top:12px;font-size:14px;color:var(--muted)}
+
+/* ---- Recompensas ---- */
+.intro{color:var(--muted);margin:10px 2px 0;font-size:15px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}
+.reward{position:relative;border-radius:26px;padding:14px;min-height:156px;display:flex;flex-direction:column;justify-content:space-between;text-align:left;overflow:hidden;background:var(--card);border:2px solid var(--line)}
+.reward .lbl{font-size:13px;color:var(--muted);font-weight:600}
+.reward .ttl{font-weight:600;font-size:16px;line-height:1.2}
+.reward .big{font-size:40px;line-height:1}
+.reward.locked .q{font-size:26px;font-weight:700;color:#5b4b8c;letter-spacing:3px}
+.reward.locked .big{filter:grayscale(.5);opacity:.55}
+.reward.locked::after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,#ffffff0d 50%,transparent 70%);background-size:250% 100%;animation:shimmer 3.5s infinite}
+@keyframes shimmer{from{background-position:120% 0}to{background-position:-120% 0}}
+.reward.new{border:0;background:linear-gradient(145deg,#6b3f7a,#a24f78);box-shadow:0 0 0 3px var(--butter),0 10px 34px #ffe39a44;animation:wiggle 2.2s ease-in-out infinite}
+@keyframes wiggle{0%,100%{transform:rotate(0)}10%{transform:rotate(-2deg)}20%{transform:rotate(2deg)}30%{transform:rotate(0)}}
+.reward.open{background:linear-gradient(160deg,#3a2c63,#2a2149)}
+.reward.letter.open{background:linear-gradient(160deg,#5b3a55,#2c2140)}
+.reward.wide{grid-column:1/-1;min-height:112px}
+.reward small{color:var(--muted);font-size:12.5px}
+.reward .corner{position:absolute;right:-6px;top:-6px;font-size:34px;opacity:.9;transform:rotate(18deg)}
+
+/* ---- Camino ---- */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0}
+.stat{background:var(--card);border:2px solid var(--line);border-radius:22px;padding:12px 6px;text-align:center}
+.stat b{display:block;font-size:24px;font-weight:600}
+.stat span{font-size:13px;color:var(--muted)}
+.level{display:flex;align-items:center;gap:10px;margin:20px 0 6px;padding:10px 14px;border-radius:20px;background:var(--bg2);border:2px dashed var(--line)}
+.level .a{font-size:34px}
+.level b{display:block;font-size:16px;font-weight:600}
+.level span{font-size:13px;color:var(--muted)}
+.level.met{border-style:solid;border-color:#5e4a96;background:linear-gradient(135deg,#352a5e,#2a2149)}
+.level.hidden .a{filter:brightness(0) invert(.35)}
+.node{display:flex;align-items:center;gap:14px;padding:9px 0 9px 8px;position:relative}
+.node:not(:last-child)::after{content:"";position:absolute;left:29px;top:50px;bottom:-10px;border-left:3px dotted var(--line)}
+.node .c{width:44px;height:44px;border-radius:50%;flex:0 0 44px;display:grid;place-items:center;border:3px solid var(--line);background:var(--bg2);font-weight:600;z-index:1;font-size:18px}
+.node.done .c{background:linear-gradient(135deg,var(--pink),var(--lav));border:0;font-size:22px}
+.node.cur .c{border-color:var(--pink);box-shadow:0 0 0 6px #ffb3c722;animation:bob 2s infinite}
+.node .t b{display:block;font-weight:600}
+.node .t span{font-size:14px;color:var(--muted)}
+
+/* ---- Tabs ---- */
+nav{position:fixed;left:0;right:0;bottom:0;padding:8px 14px calc(var(--safe-b) + 8px);background:#1a1430e8;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:2px solid var(--line);display:flex;justify-content:center;z-index:20}
+nav .in{display:flex;gap:6px;max-width:520px;width:100%}
+nav button{flex:1;padding:6px 0;border-radius:18px;color:var(--muted);font-size:13px;font-weight:500;display:flex;flex-direction:column;align-items:center;gap:1px;position:relative}
+nav button .e{font-size:22px;filter:grayscale(.6);opacity:.7}
+nav button.active{color:var(--text);background:var(--card)}
+nav button.active .e{filter:none;opacity:1}
+nav .badge{position:absolute;top:4px;right:calc(50% - 22px);width:10px;height:10px;border-radius:50%;background:var(--butter);display:none;box-shadow:0 0 8px var(--butter)}
+nav .badge.on{display:block}
+
+/* ---- Modales ---- */
+.modal{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;background:#120c22d9;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);padding:20px}
+.modal.on{display:flex;animation:fade .3s}
+.sheet{width:100%;max-width:480px;max-height:86vh;overflow:auto;background:var(--bg2);border:2px solid var(--line);border-radius:28px;padding:20px}
+.sheet h2{margin:0 0 10px;font-size:21px;font-weight:600}
+.sheet p,.sheet li{color:var(--muted);font-size:15px;line-height:1.5}
+.sheet ol{padding-left:20px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:2px solid var(--line)}
+.row label{font-size:16px}
+.switch{width:52px;height:32px;border-radius:99px;background:var(--line);position:relative;flex:0 0 52px;transition:.2s}
+.switch::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#fff;transition:.2s}
+.switch.on{background:var(--pink)}
+.switch.on::after{left:24px}
+input[type=text]{background:var(--card);border:2px solid var(--line);color:var(--text);border-radius:12px;padding:8px 10px;font:inherit;width:140px}
+details{margin-top:12px}
+summary{cursor:pointer;font-weight:600;padding:8px 0}
+.gift-stage{text-align:center;padding:6px 0}
+.gift{font-size:110px;display:inline-block;animation:shake 1s ease-in-out infinite;cursor:pointer}
+@keyframes shake{0%,100%{transform:rotate(0)}20%{transform:rotate(-9deg)}40%{transform:rotate(9deg)}60%{transform:rotate(-5deg)}80%{transform:rotate(5deg)}}
+.reveal{display:none;text-align:center;animation:pop .7s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.4);opacity:0}to{transform:none;opacity:1}}
+.reveal .flw{font-size:46px;letter-spacing:6px}
+.reveal .ttl{font-size:27px;font-weight:700;margin:8px 0 10px;color:var(--pink)}
+.reveal p{font-size:17px;color:var(--text)}
+.hint{color:var(--muted);font-size:15px;margin-top:16px;text-align:center}
+.close-x{display:block;margin:18px auto 0;padding:12px 26px;border-radius:18px;background:var(--card);border:2px solid var(--line);font-weight:600}
+
+/* Carta */
+.env-stage{display:flex;flex-direction:column;align-items:center}
+.envelope{position:relative;width:min(84vw,340px);height:210px;margin-top:150px;cursor:pointer}
+.env-back{position:absolute;inset:0;background:#f4a9bf;border-radius:10px}
+.env-front{position:absolute;inset:0;border-radius:10px;z-index:4;pointer-events:none;background:linear-gradient(180deg,#ffc6d6,#f9b3c8);clip-path:polygon(0 0,50% 52%,100% 0,100% 100%,0 100%)}
+.env-flap{position:absolute;left:0;right:0;top:0;height:128px;z-index:5;transform-origin:top;transition:transform .8s ease,z-index 0s .4s}
+.env-flap::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,#f7a3bc,#ee93ae);clip-path:polygon(0 0,100% 0,50% 100%)}
+.env-seal{position:absolute;left:50%;top:102px;transform:translateX(-50%);width:50px;height:50px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#fff3a8,#f2c94c);z-index:6;display:grid;place-items:center;font-size:24px;box-shadow:0 3px 8px #0004;transition:opacity .4s}
+.env-deco{position:absolute;bottom:10px;left:14px;z-index:6;font-size:22px;pointer-events:none}
+.envelope.open .env-flap{transform:rotateX(180deg);z-index:1}
+.envelope.open .env-seal{opacity:0}
+.paper{position:absolute;left:5%;right:5%;bottom:8px;height:190px;background:#fffaf2;border-radius:6px;z-index:2;transition:transform 1s ease .7s;box-shadow:0 4px 20px #0004}
+.envelope.open .paper{transform:translateY(-150px)}
+.letter-full{display:none;position:relative;width:100%;max-width:440px;background:#fffaf2;color:#4a2f5e;border-radius:14px;padding:30px 24px 34px;font-family:Caveat,'Segoe Script','Bradley Hand',cursive;box-shadow:0 10px 50px #0008;background-image:repeating-linear-gradient(transparent 0 33px,#f3d9e4 33px 34px);animation:fade .6s}
+.letter-full .fc{position:absolute;font-size:30px;font-family:system-ui}
+.letter-full h3{font-size:31px;margin:0 0 10px;color:#c2577f;line-height:1.1}
+.letter-full .body{font-size:25px;line-height:34px;white-space:pre-wrap;min-height:120px}
+.caret{display:inline-block;width:2px;height:24px;background:#c2577f;vertical-align:-4px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+/* Meditación */
+.medi{background:radial-gradient(120% 80% at 50% 30%,#3b2a63 0%,#1a1430 60%,#100b1f 100%);padding:0}
+.medi-in{width:100%;max-width:480px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:calc(var(--safe-t) + 20px) 24px calc(var(--safe-b) + 20px)}
+.medi-top{font-size:20px;font-weight:600}
+.medi-sub{color:var(--muted);font-size:15px;margin-top:4px}
+.breath-wrap{position:relative;width:min(72vw,280px);aspect-ratio:1;margin:28px 0 18px;display:grid;place-items:center}
+.breath{width:100%;height:100%;transition:transform .3s linear;transform:scale(.6)}
+.breath svg{width:100%;height:100%;animation:spin 60s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.breath-txt{position:absolute;font-size:24px;font-weight:600;color:#4a3570;text-shadow:0 1px 0 #fff8}
+.medi-time{font-size:40px;font-weight:600;font-variant-numeric:tabular-nums}
+.medi-msg{color:var(--muted);font-size:17px;min-height:48px;margin-top:6px;max-width:300px;transition:opacity .6s}
+.medi .chip{margin-top:10px}
+#confetti{position:fixed;inset:0;pointer-events:none;z-index:60}
+.toast{position:fixed;left:50%;top:calc(var(--safe-t) + 14px);transform:translate(-50%,-160%);background:#fff;color:#4a3570;padding:12px 18px;border-radius:20px;z-index:70;font-weight:600;transition:transform .45s cubic-bezier(.2,1.4,.4,1);max-width:90vw;text-align:center;box-shadow:0 8px 24px #0005}
+.toast.on{transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<div class="stars"></div>
+<div class="petals" id="petals"></div>
+
+<!-- dibujos reutilizables -->
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <radialGradient id="innerGrad" cx="50%" cy="40%" r="60%"><stop offset="0" stop-color="#2b2050"/><stop offset="1" stop-color="#140f26"/></radialGradient>
+    <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffb3c7"/><stop offset=".5" stop-color="#ffc9e0"/><stop offset="1" stop-color="#cdb8ff"/></linearGradient>
+    <symbol id="flower" viewBox="-12 -12 24 24">
+      <g fill="currentColor"><circle cx="0" cy="-6" r="5"/><circle cx="5.7" cy="-1.9" r="5"/><circle cx="3.5" cy="4.9" r="5"/><circle cx="-3.5" cy="4.9" r="5"/><circle cx="-5.7" cy="-1.9" r="5"/></g>
+      <circle r="3.6" fill="#ffe39a"/><circle r="1.4" cx="-1" cy="-1" fill="#fff6" />
+    </symbol>
+    <symbol id="bud" viewBox="-12 -12 24 24">
+      <circle r="3" fill="#7ccfa8"/><circle r="1.6" fill="#a8ead1"/>
+    </symbol>
+    <symbol id="potEmpty" viewBox="0 0 40 48">
+      <path d="M8 30h24l-3 15H11z" fill="#c98b6b"/><rect x="6" y="27" width="28" height="6" rx="2" fill="#dda07f"/>
+    </symbol>
+    <symbol id="potSprout" viewBox="0 0 40 48">
+      <path d="M20 28c0-6 0-9 0-12" stroke="#7ccfa8" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M20 19c-5-1-8-4-8-8 5 0 8 3 8 8zM20 17c4-1 7-4 7-7-4 0-7 3-7 7z" fill="#a8ead1"/>
+      <path d="M8 30h24l-3 15H11z" fill="#c98b6b"/><rect x="6" y="27" width="28" height="6" rx="2" fill="#dda07f"/>
+    </symbol>
+  </defs>
+</svg>
+
+<div class="app">
+  <header>
+    <div>
+      <h1><span id="appName">Operación Pollito</span> <span>🐣</span></h1>
+      <div class="sub" id="subtitle">Cargando…</div>
+    </div>
+    <button class="icon-btn" id="btnSettings" aria-label="Ajustes">⚙️</button>
+  </header>
+  <div class="chips">
+    <span class="chip" id="levelChip">🐣 Nivel 1 · <b>30 min</b> al día</span>
+    <button class="chip" id="btnMedi">🧘‍♀️ Meditar</button>
+    <span class="chip demo-badge" id="demoChip" style="display:none">Modo demo</span>
+  </div>
+
+  <!-- ===== ESTUDIAR ===== -->
+  <section class="view active" id="v-study">
+    <div class="ring-zone" id="ringZone">
+      <svg class="ring" viewBox="0 0 240 240">
+        <circle class="ring-inner" cx="120" cy="120" r="86"/>
+        <circle class="ring-bg" cx="120" cy="120" r="92" fill="none" stroke-width="12"/>
+        <circle class="ring-fg" id="ringFg" cx="120" cy="120" r="92" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="578.05" stroke-dashoffset="578.05" transform="rotate(-90 120 120)"/>
+        <g class="wreath" id="wreath"></g>
+      </svg>
+      <div class="ring-in">
+        <div class="ring-phase" id="phaseLbl">¿Empezamos?</div>
+        <div class="ring-time" id="timeLbl">15:00</div>
+        <div class="ring-today" id="todayLbl"><b>0</b> / 30 min hoy</div>
+      </div>
+    </div>
+
+    <div class="buddy" id="buddy" data-s="idle">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <ellipse cx="50" cy="94" rx="26" ry="4" fill="#0004"/>
+        <g class="head">
+          <!-- orejas -->
+          <ellipse cx="36" cy="22" rx="8" ry="20" fill="#fff" transform="rotate(-10 36 22)"/>
+          <ellipse cx="36" cy="23" rx="4" ry="14" fill="#ffc6d6" transform="rotate(-10 36 23)"/>
+          <ellipse cx="64" cy="22" rx="8" ry="20" fill="#fff" transform="rotate(12 64 22)"/>
+          <ellipse cx="64" cy="23" rx="4" ry="14" fill="#ffc6d6" transform="rotate(12 64 23)"/>
+          <!-- cuerpo y cara -->
+          <ellipse cx="50" cy="80" rx="22" ry="15" fill="#fff"/>
+          <circle cx="50" cy="56" r="25" fill="#fff"/>
+          <circle cx="66" cy="38" r="5" fill="#ffb3c7"/><circle cx="71" cy="34" r="3" fill="#ffe39a"/>
+          <ellipse cx="36" cy="62" rx="5" ry="3" fill="#ffc6d6"/><ellipse cx="64" cy="62" rx="5" ry="3" fill="#ffc6d6"/>
+          <path d="M47 63q3 3 6 0" stroke="#4a3570" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <!-- ojos según estado -->
+          <g class="st s-idle"><circle cx="41" cy="54" r="3.4" fill="#4a3570"/><circle cx="59" cy="54" r="3.4" fill="#4a3570"/><circle cx="42" cy="53" r="1" fill="#fff"/><circle cx="60" cy="53" r="1" fill="#fff"/></g>
+          <g class="st s-study"><path d="M37 56q4 3 8 0M55 56q4 3 8 0" stroke="#4a3570" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+            <path d="M30 74l20 5 20-5v14l-20 5-20-5z" fill="#cdb8ff"/><path d="M50 79v14" stroke="#9f86e6" stroke-width="2"/></g>
+          <g class="st s-break"><path d="M37 55q4-3 8 0M55 55q4-3 8 0" stroke="#4a3570" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+            <text class="zz" x="74" y="30" font-size="13" fill="#cdb8ff" font-weight="700">z</text><text class="zz" x="82" y="20" font-size="10" fill="#cdb8ff" font-weight="700" style="animation-delay:.8s">z</text></g>
+          <g class="st s-done"><path d="M37 56l4-4 4 4M55 56l4-4 4 4" stroke="#4a3570" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <text class="hearts" x="76" y="30" font-size="14">💕</text></g>
+          <!-- patitas -->
+          <ellipse cx="38" cy="90" rx="7" ry="4" fill="#fff"/><ellipse cx="62" cy="90" rx="7" ry="4" fill="#fff"/>
+        </g>
+      </svg>
+      <div class="bubble" id="bubble">¿Estudiamos un ratito? 🌷</div>
+    </div>
+
+    <div class="blocks" id="blocks"></div>
+
+    <div class="sect">¿Cómo quieres repartir el estudio de hoy?</div>
+    <div class="methods" id="methods"></div>
+
+    <div class="controls">
+      <button class="btn primary" id="btnMain">Empezar</button>
+      <button class="btn ghost" id="btnStop" style="display:none">Terminar</button>
+    </div>
+
+    <div class="card week-card">
+      <h3 id="weekTitle">Semana 1</h3>
+      <div class="muted" id="weekSub">5 días de estudio · 2 libres</div>
+      <div class="pots" id="pots"></div>
+      <div class="focus-row" id="focusRow"></div>
+    </div>
+  </section>
+
+  <!-- ===== RECOMPENSAS ===== -->
+  <section class="view" id="v-rewards">
+    <div class="intro">Cada semana completada abre un regalito 🎀</div>
+    <div class="grid" id="rewardGrid"></div>
+  </section>
+
+  <!-- ===== CAMINO ===== -->
+  <section class="view" id="v-path">
+    <div class="stats">
+      <div class="stat"><b id="stHours">0</b><span>horas 📚</span></div>
+      <div class="stat"><b id="stWeeks">0/12</b><span>semanas 🌸</span></div>
+      <div class="stat"><b id="stDays">0</b><span>días 🌱</span></div>
+    </div>
+    <div class="intro">En cada nivel te espera un amiguito nuevo</div>
+    <div id="pathList"></div>
+  </section>
+</div>
+
+<nav><div class="in">
+  <button class="active" data-tab="study"><span class="e">🌷</span>Estudiar</button>
+  <button data-tab="rewards"><span class="badge" id="rewBadge"></span><span class="e">🎀</span>Regalitos</button>
+  <button data-tab="path"><span class="e">🐾</span>Camino</button>
+</div></nav>
+
+<!-- Ajustes -->
+<div class="modal" id="mSettings"><div class="sheet">
+  <h2>Ajustes 🌼</h2>
+  <div class="row"><label>Modo concentración al empezar</label><button class="switch" id="swFocus"></button></div>
+  <div class="row"><label>Nombre del Atajo</label><input type="text" id="inShortcut" value="Estudio"></div>
+  <div class="row"><label>Sonidito al acabar bloque</label><button class="switch" id="swSound"></button></div>
+  <details>
+    <summary>Cómo crear el Atajo (una sola vez)</summary>
+    <ol>
+      <li><b>Ajustes → Concentración → +</b> → Personalizado. Llámalo <b>Estudio</b> y silencia todas las apps y personas (o deja solo a tu amorcete 😉).</li>
+      <li>Abre la app <b>Atajos → +</b>. Llámalo exactamente igual que arriba (<b>Estudio</b>).</li>
+      <li>Añade <b>Obtener números de la entrada</b> (entrada: <i>Entrada del atajo</i>).</li>
+      <li>Añade <b>Ajustar fecha</b>: sumar <i>Números</i> minutos a <i>Fecha actual</i>.</li>
+      <li>Añade la acción de <b>Concentración</b>: activar <b>Estudio</b> hasta <i>Hora</i> → <i>Fecha ajustada</i>.</li>
+      <li>Opcional: <b>Iniciar temporizador</b> de <i>Números</i> minutos, para que suene aunque la app esté cerrada.</li>
+    </ol>
+    <p>Al pulsar Empezar, la app abre Atajos un segundo, se activa la concentración y vuelves deslizando. Se apaga sola al acabar el bloque.</p>
+  </details>
+  <div id="demoTools" style="display:none">
+    <details open>
+      <summary>Herramientas de demo</summary>
+      <p>Para probar los regalitos sin esperar semanas.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="chip" id="dAddDay"><b>🌸 Cumplir hoy</b></button>
+        <button class="chip" id="dNext"><b>☀️ Día siguiente</b></button>
+        <button class="chip" id="dReset"><b>↺ Reiniciar</b></button>
+      </div>
+    </details>
+  </div>
+  <button class="close-x" data-close>Cerrar</button>
+</div></div>
+
+<!-- Regalo -->
+<div class="modal" id="mGift"><div class="sheet" style="text-align:center">
+  <div class="gift-stage" id="giftStage">
+    <div id="giftLbl" style="color:var(--butter);font-weight:600;font-size:17px">Semana 1</div>
+    <div class="gift" id="giftBox">🎁</div>
+    <div class="hint">Toca el regalito para abrirlo</div>
+  </div>
+  <div class="reveal" id="giftReveal">
+    <div class="flw">🌸🌷🌼</div>
+    <div id="revLbl" style="color:var(--muted);font-weight:600;margin-top:6px"></div>
+    <div class="ttl" id="revTtl"></div>
+    <p id="revMsg"></p>
+  </div>
+  <button class="close-x" data-close>Cerrar</button>
+</div></div>
+
+<!-- Carta -->
+<div class="modal" id="mLetter"><div style="width:100%;display:flex;flex-direction:column;align-items:center">
+  <div class="env-stage" id="envStage">
+    <div class="envelope" id="envelope">
+      <div class="env-back"></div>
+      <div class="paper"></div>
+      <div class="env-front"></div>
+      <div class="env-flap"></div>
+      <div class="env-seal">💗</div>
+      <div class="env-deco">🌷🌼</div>
+    </div>
+    <div class="hint" id="envHint">Tienes una carta 💌 Toca para abrirla</div>
+  </div>
+  <div class="letter-full" id="letterFull">
+    <span class="fc" style="right:10px;top:6px">🌸</span><span class="fc" style="left:8px;bottom:4px">🌷</span>
+    <h3 id="letterTtl"></h3><div class="body" id="letterBody"></div>
+  </div>
+  <button class="close-x" data-close>Cerrar</button>
+</div></div>
+
+<!-- Meditación -->
+<div class="modal medi" id="mMedi"><div class="medi-in">
+  <div class="medi-top" id="mediTop">5 minutos para ti 🧘‍♀️</div>
+  <div class="medi-sub">Sigue la flor con tu respiración</div>
+  <div class="breath-wrap">
+    <div class="breath" id="breath">
+      <svg viewBox="-100 -100 200 200" aria-hidden="true">
+        <g id="breathPetals"></g>
+        <circle r="34" fill="#ffe39a"/><circle r="28" fill="#fff1c4"/>
+      </svg>
+    </div>
+    <div class="breath-txt" id="breathTxt">Inspira</div>
+  </div>
+  <div class="medi-time" id="mediTime">5:00</div>
+  <div class="medi-msg" id="mediMsg">Ponte cómoda y cierra los ojos si quieres</div>
+  <button class="chip" id="mediSound" style="display:none">🔈 Toca para oír la música</button>
+  <button class="close-x" id="mediEnd">Terminar</button>
+</div></div>
+
+<canvas id="confetti"></canvas>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+"use strict";
+const DEMO = !CONFIG.API_URL;
+const $ = s => document.querySelector(s);
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem('reto:'+k); return v==null ? d : JSON.parse(v); }catch(e){ return d; } },
+  set(k, v){ try{ localStorage.setItem('reto:'+k, JSON.stringify(v)); }catch(e){} }
+};
+
+/* ---------- Métodos: los bloques SIEMPRE suman el objetivo del día ----------
+ * Para cada objetivo hay 3 formas de repartirlo: bloques cortos, medios o largos.  */
+const PLANS = {
+  30:  [{block:10, brk:3},  {block:15, brk:5},  {block:30, brk:0}],
+  60:  [{block:15, brk:5},  {block:30, brk:5},  {block:60, brk:0}],
+  90:  [{block:30, brk:5},  {block:45, brk:10}, {block:90, brk:0}],
+  120: [{block:30, brk:5, longBrk:15, every:2}, {block:40, brk:10}, {block:60, brk:15}],
+  150: [{block:30, brk:5, longBrk:15, every:2}, {block:50, brk:10}, {block:75, brk:15}],
+  180: [{block:30, brk:5, longBrk:15, every:3}, {block:60, brk:10}, {block:90, brk:20}],
+};
+const STYLES = [{e:'🐣', n:'Pollito'}, {e:'🐰', n:'Conejito'}, {e:'🐻', n:'Osito'}];
+const LEVEL_FRIENDS = [
+  {e:'🐣', n:'Pollito'}, {e:'🐰', n:'Conejita'}, {e:'🐱', n:'Gatito'},
+  {e:'🦊', n:'Zorrito'}, {e:'🐻', n:'Osito'}, {e:'🐼', n:'Panda'}];
+function planFor(target, style){ const ps = PLANS[target] || PLANS[30]; return ps[Math.max(0, Math.min(2, style))]; }
+
+/* ---------- Estado ---------- */
+let settings = Object.assign({focus:false, shortcut:'Estudio', sound:true, style:1}, LS.get('settings', {}));
+let T = LS.get('timer', null) || {status:'idle'};   // idle | study | break | paused | waiting
+let queue = LS.get('queue', []);
+let state = LS.get('state', null);
+let known = LS.get('known', null);
+let opened = LS.get('opened', []);
+const saveT = () => LS.set('timer', T);
+const saveS = () => LS.set('settings', settings);
+
+/* ---------- Fechas ---------- */
+function ymd(d){ const z=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate()); }
+function addDays(s, n){ const [y,m,d]=s.split('-').map(Number); return new Date(Date.UTC(y,m-1,d+n)).toISOString().slice(0,10); }
+function todayStr(){ const base = ymd(new Date()); return DEMO ? addDays(base, LS.get('demoOffset',0)) : base; }
+const WD = ['D','L','M','X','J','V','S'];
+function wd(s){ const [y,m,d]=s.split('-').map(Number); return WD[new Date(Date.UTC(y,m-1,d)).getUTCDay()]; }
+
+/* ---------- Lógica del reto (idéntica al servidor) ---------- */
+const MAX_WEEKS = 12, BONUS_HOURS = [25,50,100];
+function computeProgress(sessions, startDate, today){
+  const byDay = {}; let total = 0;
+  sessions.forEach(s => { byDay[s.date]=(byDay[s.date]||0)+s.minutes; total+=s.minutes; });
+  const days = Object.keys(byDay).sort();
+  if(!startDate) startDate = days[0] || today;
+  const unlocks = {};
+  for(const d of days){ if(d>=startDate && byDay[d]>=30){ unlocks.primera=d; break; } }
+  let cum=0;
+  for(const d of days){ cum+=byDay[d]; BONUS_HOURS.forEach(h=>{ if(!unlocks['bonus'+h] && cum>=h*60) unlocks['bonus'+h]=d; }); }
+  let completed=0, cycleStart=startDate, current=null, guard=0;
+  while(completed<MAX_WEEKS && guard++<500){
+    const target = 30*Math.min(6, Math.floor(completed/2)+1);
+    const cycleEnd = addDays(cycleStart,6);
+    let count=0, doneOn=null; const ds=[];
+    for(let i=0;i<7;i++){
+      const d=addDays(cycleStart,i), m=byDay[d]||0, ok=d<=today && m>=target;
+      if(ok){ count++; if(count===5) doneOn=d; }
+      ds.push({date:d, minutes:m, ok, future:d>today});
+    }
+    if(doneOn){ completed++; unlocks['semana'+completed]=doneOn; }
+    if(cycleEnd>=today){ current={week:doneOn?completed:completed+1, target, cycleStart, cycleEnd, days:ds, count:Math.min(count,7), done:!!doneOn}; break; }
+    cycleStart=addDays(cycleStart,7);
+  }
+  return {byDay, unlocks, completed, current, finished:completed>=MAX_WEEKS, totalMinutes:total, daysStudied:days.length, startDate};
+}
+
+/* ---------- Modo demo (recompensas de ejemplo, NO las reales) ---------- */
+const DEMO_REWARDS = [{id:'primera', label:'Primer día', type:'carta', title:'Aquí irá tu carta', message:'Este es un texto de ejemplo. La carta de verdad la escribe tu amorcete en su panel secreto y aparece aquí escrita a mano.'}]
+  .concat(Array.from({length:12},(_,i)=>({id:'semana'+(i+1), label:'Semana '+(i+1), type:'premio', title:'Regalito de ejemplo '+(i+1), message:'En la app real aquí aparece el plan sorpresa.'})));
+function demoState(){
+  const sessions = LS.get('demoSessions', []);
+  const p = computeProgress(sessions, LS.get('demoStart', null), todayStr());
+  if(!LS.get('demoStart', null) && sessions.length) LS.set('demoStart', p.startDate);
+  return {
+    appName:'Operación Pollito', today:todayStr(), todayMinutes:p.byDay[todayStr()]||0, totalMinutes:p.totalMinutes,
+    daysStudied:p.daysStudied, completed:p.completed, finished:p.finished, current:p.current,
+    rewards: DEMO_REWARDS.map(r => p.unlocks[r.id] ? Object.assign({}, r, {unlocked:true, unlockedAt:p.unlocks[r.id]}) : {id:r.id, label:r.label, unlocked:false})
+  };
+}
+
+/* ---------- Red ---------- */
+async function api(params){
+  const u = new URL(CONFIG.API_URL);
+  Object.entries(Object.assign({token:CONFIG.TOKEN}, params)).forEach(([k,v]) => u.searchParams.set(k, v));
+  const r = await fetch(u.toString(), {redirect:'follow'});
+  const j = await r.json();
+  if(j.error) throw new Error(j.error);
+  return j;
+}
+let flushing = false;
+async function flush(){
+  if(DEMO){
+    if(queue.length){
+      const s = LS.get('demoSessions', []);
+      queue.forEach(q => s.push({date:q.date, minutes:q.minutes}));
+      LS.set('demoSessions', s); queue = []; LS.set('queue', queue);
+    }
+    applyState(demoState()); return;
+  }
+  if(flushing) return; flushing = true;
+  try{
+    let st = null;
+    while(queue.length){
+      const q = queue[0];
+      st = await api({action:'session', id:q.id, date:q.date, minutes:q.minutes, method:q.method});
+      queue.shift(); LS.set('queue', queue);
+    }
+    if(!st) st = await api({action:'state'});
+    applyState(st);
+  }catch(e){ console.warn('Sin conexión', e); if(state) render(); }
+  finally{ flushing = false; }
+}
+function applyState(st){
+  state = st; LS.set('state', st);
+  const unlockedIds = st.rewards.filter(r=>r.unlocked).map(r=>r.id);
+  if(known === null){ known = unlockedIds; LS.set('known', known); }
+  const fresh = st.rewards.filter(r => r.unlocked && !known.includes(r.id));
+  if(fresh.length){ known = known.concat(fresh.map(r=>r.id)); LS.set('known', known); celebrate(fresh); }
+  render();
+}
+
+/* ---------- Temporizador ---------- */
+const now = () => Date.now();
+const target = () => state && state.current ? state.current.target : 30;
+const curPlan = () => planFor(target(), settings.style);
+function serverToday(){ return state && state.today === todayStr() ? state.todayMinutes : 0; }
+function bankedToday(){ // minutos ya contados (servidor + cola + pendiente), sin el bloque en marcha
+  const t = todayStr();
+  return serverToday() + queue.filter(x=>x.date===t).reduce((a,b)=>a+b.minutes,0) + (T.pendingMs||0)/60000;
+}
+function liveToday(){ return bankedToday() + (T.status==='study' && T.runSince ? (now()-T.runSince)/60000 : 0); }
+function remaining(){ return Math.max(0, target() - bankedToday()); }
+function nextBlockMin(){ return Math.min(curPlan().block, Math.ceil(remaining() - 0.01)); }
+
+function startStudy(){
+  T.extra = remaining() < 0.5;
+  T.status='study'; T.runSince=now(); T.sessionId = T.sessionId || uid(); T.pendingMs = T.pendingMs || 0;
+  const ms = T.resumeMs || (T.extra ? curPlan().block : nextBlockMin())*60000;
+  T.phaseEnd = now() + ms; T.resumeMs = null; T.block = (T.block||0) + (T.resuming ? 0 : 1); T.resuming = false;
+  saveT(); unlockAudio(); say('study');
+  if(settings.focus){
+    const url = 'shortcuts://run-shortcut?name=' + encodeURIComponent(settings.shortcut || 'Estudio') + '&input=text&text=' + Math.ceil(ms/60000);
+    if(DEMO) toast('🌙 En la app real aquí se activa la concentración');
+    else { try{ window.open(url, '_top'); }catch(e){ try{ location.href = url; }catch(_){} } }
+  }
+}
+function stopRunning(){ if(T.status==='study'){ T.pendingMs = (T.pendingMs||0) + (now() - T.runSince); T.runSince = null; } }
+function bank(final){
+  // redondeo al minuto más cercano si es el final del día, para que 14:59.6 cuente como 15
+  const mins = final ? Math.round((T.pendingMs||0)/60000) : Math.floor((T.pendingMs||0)/60000 + 0.01);
+  if(mins >= 1){
+    queue.push({id:(T.sessionId||uid())+'-'+(T.bankN=(T.bankN||0)+1), date:todayStr(), minutes:mins, method:STYLES[settings.style].n+' '+curPlan().block});
+    LS.set('queue', queue);
+    T.pendingMs = Math.max(0, (T.pendingMs||0) - mins*60000);
+  }
+  if(final) T.pendingMs = 0;
+  saveT(); flush();
+}
+function afterBlock(endedAt){
+  if(T.extra){ T = {status:'idle'}; saveT(); say('done'); toast('Bloque extra guardado ✨'); return; }
+  if(remaining() < 0.5){ T = {status:'idle'}; saveT(); dayDone(); return; }
+  const p = curPlan();
+  const doneBlocks = Math.round(bankedToday()/p.block);
+  const mins = (p.every && doneBlocks % p.every === 0) ? p.longBrk : p.brk;
+  if(!mins){ T.status='waiting'; saveT(); return; }
+  T.status='break'; T.phaseEnd = (endedAt||now()) + mins*60000; saveT(); say('break');
+}
+function onMain(){
+  if(T.status==='idle' || T.status==='waiting'){ startStudy(); }
+  else if(T.status==='study'){ T.resumeMs = T.phaseEnd - now(); stopRunning(); T.status='paused'; bank(false); say('pause'); }
+  else if(T.status==='paused'){ T.resuming = true; startStudy(); }
+  else if(T.status==='break'){ T.status='waiting'; startStudy(); }
+  saveT(); tick();
+}
+function onStop(){
+  stopRunning(); T.status='between'; bank(true);
+  T = {status:'idle'}; saveT(); tick(); say('idle');
+  toast('Guardado 🌸');
+}
+function advance(){
+  const t = now();
+  if(T.status==='study' && t >= T.phaseEnd){
+    const ended = T.phaseEnd;
+    T.pendingMs = (T.pendingMs||0) + (ended - T.runSince); T.runSince=null;
+    T.status='between';
+    const willFinish = !T.extra && remaining() < 0.5;
+    if(willFinish) startMeditation(true); else chime();
+    bank(willFinish); afterBlock(ended);
+  }
+  if(T.status==='break' && t >= T.phaseEnd){ T.status='waiting'; saveT(); chime(); say('waiting'); }
+}
+let doneShownDay = LS.get('doneShown', null);
+function dayDone(){
+  say('done');
+  if(doneShownDay !== todayStr()){ doneShownDay = todayStr(); LS.set('doneShown', doneShownDay); toast('¡Objetivo de hoy conseguido! 🌸'); petalsBurst(2200); }
+}
+
+/* ---------- Mascota ---------- */
+const PHRASES = {
+  idle:['¿Estudiamos un ratito? 🌷','Hoy va a ser un buen día 🌼','Estoy aquí contigo 🐰'],
+  study:['¡Tú puedes! 💪','Qué bien lo estás haciendo 💕','Concentradita… shhh 🤫','Cada minuto cuenta 🌱','Paso a pasito 🐾'],
+  pause:['Te espero aquí 🐰'],
+  break:['Descansito… estírate un poco 💤','Bebe agüita 💧','Mira por la ventana un ratito 🌤️'],
+  waiting:['¡Fin del descanso! ¿Seguimos? 🌷'],
+  done:['¡Hoy lo has bordado! 🌸','¡Lo conseguiste! Estoy orgullosa 💕'],
+  rest:['Hoy toca descansar, ¡te lo has ganado! 🌙'],
+};
+let sayT = 0;
+function say(kind){
+  const list = PHRASES[kind] || PHRASES.idle;
+  $('#bubble').textContent = list[Math.floor(Math.random()*list.length)];
+  $('#buddy').dataset.s = kind==='study' ? 'study' : (kind==='break' ? 'break' : (kind==='done'||kind==='rest' ? 'done' : 'idle'));
+  sayT = now();
+}
+
+/* ---------- Render ---------- */
+const CIRC = 2*Math.PI*92, NFL = 12;
+const FL_COLORS = ['#ffb3c7','#cdb8ff','#ffc9a8','#ffe39a','#a8d8ff','#ffb3c7','#e3b8ff','#ffd1dc','#cdb8ff','#ffc9a8','#b8f0d8','#ffb3c7'];
+(function buildWreath(){
+  let g='';
+  for(let i=0;i<NFL;i++){
+    const a = -Math.PI/2 + (i+1)/NFL*2*Math.PI, x = 120+106*Math.cos(a), y = 120+106*Math.sin(a);
+    g += '<g class="off" data-i="'+i+'"><use class="bud" href="#bud" x="'+(x-9)+'" y="'+(y-9)+'" width="18" height="18"/>'+
+         '<use class="fl" href="#flower" x="'+(x-12)+'" y="'+(y-12)+'" width="24" height="24" style="color:'+FL_COLORS[i]+';transition-delay:'+(i*0.04)+'s"/></g>';
+  }
+  $('#wreath').innerHTML = g;
+})();
+function fmt(ms){ ms=Math.max(0,ms); const s=Math.round(ms/1000), h=Math.floor(s/3600), m=Math.floor(s%3600/60), x=s%60; const z=n=>String(n).padStart(2,'0'); return h? h+':'+z(m)+':'+z(x) : z(m)+':'+z(x); }
+function fmtMin(m){ return m>=60 ? (m%60 ? Math.floor(m/60)+' h '+(m%60) : (m/60)+' h') : m+' min'; }
+function isRestNow(){ const c = state && state.current; return c && c.done; }
+
+function tick(){
+  advance();
+  const tgt = target(), live = liveToday(), frac = Math.min(1, live/tgt);
+  $('#ringFg').style.strokeDashoffset = CIRC*(1-frac);
+  document.querySelectorAll('#wreath > g').forEach(g => { const on = frac >= (+g.dataset.i+1)/NFL - 1e-6; g.setAttribute('class', on?'on':'off'); });
+  $('#todayLbl').innerHTML = '<b>'+Math.floor(live)+'</b> / '+fmtMin(tgt)+' hoy';
+  $('#ringZone').classList.toggle('running', T.status==='study');
+
+  // bloques
+  const p = curPlan(), n = Math.ceil(tgt/p.block);
+  let bh=''; for(let i=0;i<n;i++){ const f = Math.max(0, Math.min(1, (live - i*p.block)/p.block)); bh += '<div class="blk"><span style="width:'+(f*100)+'%"></span></div>'; }
+  $('#blocks').innerHTML = bh;
+
+  const dayComplete = remaining() < 0.5 && T.status==='idle';
+  let phase='', time=$('#timeLbl').textContent, main='Empezar 🌱', dis=false;
+  const blockIdx = Math.min(n, Math.floor(bankedToday()/p.block + 0.01) + 1);
+  if(T.status==='idle'){
+    if(dayComplete){ phase='¡Hecho por hoy! 🌸'; time=fmt(curPlan().block*60000); main='✨ Estudiar extra'; }
+    else { phase = bankedToday()>0.5 ? 'Te quedan '+Math.ceil(remaining())+' min' : (isRestNow() ? 'Día libre 🌙' : '¿Empezamos?'); time = fmt(nextBlockMin()*60000); }
+  }
+  else if(T.status==='study'){ phase= T.extra ? 'Bloque extra ✨' : 'Bloque '+blockIdx+' de '+n; time=fmt(T.phaseEnd-now()); main='Pausar'; }
+  else if(T.status==='paused'){ phase='En pausa'; time=fmt(T.resumeMs); main='Seguir 🌱'; }
+  else if(T.status==='break'){ phase='Descansito 🍵'; time=fmt(T.phaseEnd-now()); main='Saltar descanso'; }
+  else if(T.status==='waiting'){ phase='¿Siguiente bloque?'; time=fmt(nextBlockMin()*60000); main='Seguir 🌱'; }
+  $('#phaseLbl').textContent = phase; $('#timeLbl').textContent = time;
+  const bm = $('#btnMain'); bm.textContent = main; bm.disabled = dis;
+  $('#btnStop').style.display = T.status==='idle' ? 'none' : '';
+  document.querySelectorAll('.method').forEach(b => b.disabled = T.status!=='idle');
+  if(dayComplete && $('#buddy').dataset.s!=='done') say('done');
+  if(T.status==='study' && now()-sayT > 90000) say('study');
+}
+
+function render(){
+  if(!state) return;
+  $('#appName').textContent = state.appName; document.title = state.appName;
+  const c = state.current;
+  $('#subtitle').textContent = state.finished && (!c || c.done) ? '¡Reto completado! 🏆' : (c ? (c.done ? '¡Semana '+c.week+' completada! 🎉' : 'Semana '+c.week+' de 12') : '');
+  const lvl = c ? Math.min(6, Math.floor((c.week-1)/2)+1) : 1;
+  $('#levelChip').innerHTML = LEVEL_FRIENDS[lvl-1].e+' Nivel '+lvl+' · <b>'+fmtMin(c?c.target:30)+'</b> al día';
+  $('#demoChip').style.display = DEMO ? '' : 'none';
+  $('#demoTools').style.display = DEMO ? '' : 'none';
+
+  if(c){
+    $('#weekTitle').textContent = c.done ? 'Semana '+c.week+' completada 🎉' : 'Tu jardín de la semana '+c.week;
+    const left = 5 - Math.min(5, c.count);
+    $('#weekSub').textContent = c.done ? 'Los días que quedan son libres. ¡A descansar! 🌙' : 'Cada día cumplido florece una maceta · faltan '+left+' (2 días libres)';
+    const t = todayStr();
+    $('#pots').innerHTML = c.days.map((d,i) => {
+      let pot;
+      if(d.ok) pot = '<svg viewBox="0 0 40 48"><use href="#potSprout"/><use href="#flower" x="10" y="2" width="20" height="20" style="color:'+FL_COLORS[i*2%12]+'"/></svg>';
+      else if(d.date===t) pot = '<svg viewBox="0 0 40 48"><use href="#potSprout"/></svg>';
+      else pot = '<svg viewBox="0 0 40 48"><use href="#potEmpty"/></svg>';
+      return '<div class="pot'+(d.date===t?' today':'')+(d.future?' future':'')+'">'+pot+wd(d.date)+'</div>';
+    }).join('');
+  }
+  $('#focusRow').innerHTML = settings.focus ? '🌙 Modo concentración activado al empezar' : '🔔 Puedes activar el modo concentración en ⚙️';
+  renderMethods(); renderRewards(); renderPath(); tick();
+}
+
+function renderMethods(){
+  const tgt = target();
+  $('#methods').innerHTML = (PLANS[tgt]||PLANS[30]).map((p,i) => {
+    const n = Math.ceil(tgt/p.block);
+    return '<button class="method'+(settings.style===i?' sel':'')+'" data-s="'+i+'"><div class="e">'+STYLES[i].e+'</div><div class="n">'+STYLES[i].n+'</div><div class="d">'+(n>1? n+' × '+p.block+' min' : tgt+' min seguidos')+'</div></button>';
+  }).join('');
+  document.querySelectorAll('.method').forEach(b => b.onclick = () => { if(T.status!=='idle') return; settings.style = +b.dataset.s; saveS(); renderMethods(); tick(); });
+  document.querySelectorAll('.method').forEach(b => b.disabled = T.status!=='idle');
+}
+
+function renderRewards(){
+  const grid = $('#rewardGrid'); let anyNew = false;
+  const deco = ['🌸','🌷','🌼','🌻','🌺','💐','🪻','🌹','🍀','🌿','🌸','🌷'];
+  grid.innerHTML = state.rewards.map((r,i) => {
+    const isLetter = r.type==='carta' || r.id==='primera';
+    if(!r.unlocked) return '<div class="reward locked'+(isLetter?' wide':'')+'"><div class="lbl">'+esc(r.label)+'</div><div class="q">? ? ?</div><div class="big">'+(isLetter?'💌':'🎁')+'</div></div>';
+    const isNew = !opened.includes(r.id); if(isNew) anyNew = true;
+    if(isNew) return '<button class="reward new'+(isLetter?' wide':'')+'" data-r="'+r.id+'"><div class="lbl" style="color:var(--butter)">'+esc(r.label)+'</div><div class="big">'+(isLetter?'💌':'🎁')+'</div><div class="ttl">¡Toca para abrir!</div></button>';
+    return '<button class="reward open'+(isLetter?' letter wide':'')+'" data-r="'+r.id+'"><span class="corner">'+(isLetter?'💌':deco[i%12])+'</span><div class="lbl">'+esc(r.label)+'</div><div class="ttl">'+esc(r.title)+'</div><small>'+(isLetter?'Toca para leerla otra vez':'Desbloqueado el '+niceDate(r.unlockedAt))+'</small></button>';
+  }).join('');
+  $('#rewBadge').classList.toggle('on', anyNew);
+  grid.querySelectorAll('[data-r]').forEach(b => b.onclick = () => openReward(b.dataset.r));
+}
+
+function renderPath(){
+  $('#stHours').textContent = (state.totalMinutes/60).toFixed(state.totalMinutes<600?1:0);
+  $('#stWeeks').textContent = state.completed+'/12';
+  $('#stDays').textContent = state.daysStudied;
+  const c = state.current; let html='';
+  const curWeek = c ? c.week : 1;
+  for(let w=1; w<=12; w++){
+    if(w%2===1){
+      const l=(w+1)/2, f=LEVEL_FRIENDS[l-1], met = curWeek >= w;
+      html += '<div class="level'+(met?' met':' hidden')+'"><div class="a">'+f.e+'</div><div><b>Nivel '+l+' · '+fmtMin(30*l)+' al día</b><span>'+(met?'Con '+f.n:'Amiguito por descubrir')+'</span></div></div>';
+    }
+    const done = w <= state.completed, cur = c && !c.done && c.week===w;
+    const rw = state.rewards.find(r=>r.id==='semana'+w);
+    const sub = done ? (rw && rw.unlocked ? (opened.includes(rw.id) ? esc(rw.title) : '🎁 ¡Regalito por abrir!') : 'Completada') : (cur ? 'En curso · '+Math.min(5,c.count)+'/5 macetas' : '🎁 Regalito sorpresa');
+    html += '<div class="node '+(done?'done':'')+(cur?' cur':'')+'"><div class="c">'+(done?'🌸':w)+'</div><div class="t"><b>Semana '+w+'</b><span>'+sub+'</span></div></div>';
+  }
+  $('#pathList').innerHTML = html;
+}
+
+/* ---------- Abrir recompensas ---------- */
+function markOpened(id){ if(!opened.includes(id)){ opened.push(id); LS.set('opened', opened); } render(); }
+function openReward(id){
+  const r = state.rewards.find(x=>x.id===id); if(!r || !r.unlocked) return;
+  if(r.type==='carta' || r.id==='primera') return openLetter(r);
+  const first = !opened.includes(id);
+  $('#giftLbl').textContent = r.label; $('#revLbl').textContent = r.label;
+  $('#revTtl').textContent = r.title; $('#revMsg').textContent = r.message || '';
+  $('#giftStage').style.display = first ? '' : 'none';
+  $('#giftReveal').style.display = first ? 'none' : 'block';
+  $('#giftBox').onclick = () => { $('#giftStage').style.display='none'; $('#giftReveal').style.display='block'; petalsBurst(2600); chime(); markOpened(id); };
+  show('#mGift');
+}
+let typing = null;
+function openLetter(r){
+  clearInterval(typing);
+  const env = $('#envelope');
+  env.classList.remove('open'); $('#envStage').style.display='flex'; $('#letterFull').style.display='none';
+  $('#letterTtl').textContent = r.title || ''; $('#letterBody').textContent = '';
+  $('#envHint').textContent = 'Tienes una carta 💌 Toca para abrirla';
+  show('#mLetter');
+  env.onclick = () => {
+    if(env.classList.contains('open')) return;
+    env.classList.add('open'); $('#envHint').textContent = '';
+    setTimeout(() => { $('#envStage').style.display='none'; $('#letterFull').style.display='block'; writeByHand($('#letterBody'), r.message || ''); markOpened(r.id); }, 1900);
+  };
+}
+function writeByHand(el, text){
+  const chars = Array.from(text); let i=0;
+  el.innerHTML = '<span></span><span class="caret"></span>';
+  const span = el.firstChild;
+  typing = setInterval(() => {
+    if(i >= chars.length){ clearInterval(typing); el.lastChild.remove(); petalsBurst(1800); return; }
+    span.textContent += chars[i++];
+  }, 55 + Math.random()*20);
+}
+let celebrateQueue = [];
+function celebrate(list){ celebrateQueue = celebrateQueue.concat(list); if(!document.querySelector('.modal.on')) nextCelebration(); }
+function nextCelebration(){
+  const r = celebrateQueue.shift(); if(!r) return;
+  switchTab('rewards'); petalsBurst(2000);
+  toast('¡Has desbloqueado '+r.label+'! 🎀');
+  setTimeout(() => openReward(r.id), 900);
+}
+
+/* ---------- UI helpers ---------- */
+function show(s){ $(s).classList.add('on'); }
+function hide(m){ m.classList.remove('on'); clearInterval(typing); setTimeout(nextCelebration, 400); }
+document.querySelectorAll('[data-close]').forEach(b => b.onclick = () => hide(b.closest('.modal')));
+document.querySelectorAll('.modal').forEach(m => m.addEventListener('click', e => { if(e.target===m) hide(m); }));
+function switchTab(t){
+  document.querySelectorAll('nav button').forEach(b => b.classList.toggle('active', b.dataset.tab===t));
+  document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id==='v-'+t));
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('nav button').forEach(b => b.onclick = () => switchTab(b.dataset.tab));
+let toastT;
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('on'), 2600); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function niceDate(s){ if(!s) return ''; const [y,m,d]=s.split('-'); return d+'/'+m; }
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+
+/* pétalos de fondo */
+(function(){ let h=''; for(let i=0;i<14;i++){ h += '<i style="left:'+(Math.random()*100)+'%;animation-duration:'+(14+Math.random()*16)+'s;animation-delay:-'+(Math.random()*30)+'s"></i>'; } $('#petals').innerHTML = h; })();
+
+/* Sonido */
+let actx = null;
+function unlockAudio(){ try{ if(!actx){ const C = window.AudioContext||window.webkitAudioContext; if(C) actx = new C(); } if(actx && actx.state==='suspended') actx.resume(); }catch(e){} }
+function chime(){
+  if(!settings.sound || !actx) return;
+  try{
+    [783.99, 987.77, 1174.66, 1567.98].forEach((f,i) => {
+      const o = actx.createOscillator(), g = actx.createGain(), t = actx.currentTime + i*0.14;
+      o.type='sine'; o.frequency.value=f; g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.18,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.9);
+      o.connect(g).connect(actx.destination); o.start(t); o.stop(t+1);
+    });
+  }catch(e){}
+}
+
+/* Lluvia de pétalos y corazones */
+const cv = $('#confetti'), cx = cv.getContext('2d'); let parts = [], confRAF = null;
+function petalsBurst(ms){
+  const dpr = devicePixelRatio||1;
+  cv.width = innerWidth*dpr; cv.height = innerHeight*dpr;
+  const cols = ['#ffb3c7','#cdb8ff','#ffe39a','#ffc9a8','#a8ead1','#ffffff'];
+  for(let i=0;i<110;i++) parts.push({x:Math.random()*cv.width, y:-20-Math.random()*cv.height*0.4, vx:(Math.random()-.5)*2.5, vy:1.5+Math.random()*2.5, s:(7+Math.random()*7)*dpr, r:Math.random()*6, vr:(Math.random()-.5)*.08, c:cols[i%cols.length], heart:i%5===0, sw:Math.random()*6, die:Date.now()+ms+Math.random()*1200});
+  if(!confRAF) loop();
+  function loop(){
+    cx.clearRect(0,0,cv.width,cv.height);
+    const t = Date.now();
+    parts = parts.filter(p => p.y < cv.height+40 && t < p.die+2000);
+    parts.forEach(p => {
+      p.sw += 0.04; p.x += p.vx + Math.sin(p.sw)*0.8*dpr; p.y += p.vy*dpr; p.r += p.vr;
+      cx.save(); cx.translate(p.x,p.y); cx.rotate(p.r); cx.fillStyle=p.c;
+      if(p.heart){ const s=p.s/2; cx.beginPath(); cx.moveTo(0,s*.6); cx.bezierCurveTo(-s*1.2,-s*.2,-s*.5,-s*1.1,0,-s*.4); cx.bezierCurveTo(s*.5,-s*1.1,s*1.2,-s*.2,0,s*.6); cx.fill(); }
+      else { cx.beginPath(); cx.ellipse(0,0,p.s/2,p.s/4,0,0,Math.PI*2); cx.fill(); }
+      cx.restore();
+    });
+    confRAF = parts.length ? requestAnimationFrame(loop) : (cx.clearRect(0,0,cv.width,cv.height), null);
+  }
+}
+
+/* ---------- Meditación con música relajante generada (sin archivos) ---------- */
+const MEDI_MIN = 5;
+const MEDI_MSGS = ['Ponte cómoda y cierra los ojos si quieres','Suelta los hombros…','Afloja la mandíbula y la frente','Nota cómo entra y sale el aire','Piensa en algo que hayas aprendido hoy','Si la mente se va, vuelve a la flor 🌸','Lo has hecho genial hoy 💕','Siente el peso de tu cuerpo, tranquila','Un poquito más… ya casi'];
+(function buildPetals(){
+  const cols = ['#ffb3c7','#cdb8ff','#ffc9e0','#e3b8ff','#ffb3c7','#cdb8ff','#ffc9e0','#e3b8ff'];
+  let g=''; for(let i=0;i<8;i++){ g += '<ellipse cx="0" cy="-55" rx="30" ry="50" fill="'+cols[i]+'" opacity=".9" transform="rotate('+(i*45)+')"/>'; }
+  $('#breathPetals').innerHTML = g;
+})();
+let medi = null, mediInt = null;
+function startMeditation(auto){
+  medi = {start: now(), end: now() + MEDI_MIN*60000, auto};
+  $('#mediTop').textContent = auto ? '¡Objetivo cumplido! 🌸 Ahora 5 min para ti' : '5 minutos para ti 🧘‍♀️';
+  $('#mediEnd').textContent = 'Terminar';
+  show('#mMedi');
+  music.start();
+  clearInterval(mediInt); mediInt = setInterval(mediTick, 250); mediTick();
+}
+function mediTick(){
+  if(!medi) return;
+  const t = now(), rem = medi.end - t;
+  if(rem <= 0){ return endMeditation(true); }
+  $('#mediTime').textContent = fmt(rem);
+  const c = ((t - medi.start)/1000) % 12; // 4 s inspira · 2 s mantén · 6 s espira
+  let sc, txt;
+  if(c < 4){ sc = .6 + .4*(c/4); txt = 'Inspira'; }
+  else if(c < 6){ sc = 1; txt = 'Mantén'; }
+  else { sc = 1 - .4*((c-6)/6); txt = 'Espira'; }
+  $('#breath').style.transform = 'scale('+sc.toFixed(3)+')';
+  $('#breathTxt').textContent = txt;
+  const mi = Math.min(MEDI_MSGS.length-1, Math.floor((t - medi.start)/36000));
+  if($('#mediMsg').textContent !== MEDI_MSGS[mi]) $('#mediMsg').textContent = MEDI_MSGS[mi];
+  $('#mediSound').style.display = (actx && actx.state === 'running') ? 'none' : '';
+}
+function endMeditation(finished){
+  clearInterval(mediInt); mediInt = null;
+  const wasAuto = medi && medi.auto; medi = null;
+  if(finished){
+    music.bowl(1.6); music.stop(6);
+    $('#mediTime').textContent = '0:00'; $('#breathTxt').textContent = '💕';
+    $('#mediMsg').textContent = wasAuto ? '¡Hecho por hoy! Estoy muy orgullosa de ti 🌸' : 'Qué bien te sienta esto 🌸';
+    $('#mediEnd').textContent = 'Cerrar 💕';
+    petalsBurst(2000);
+  } else { music.stop(2); hide($('#mMedi')); }
+}
+$('#mediEnd').onclick = () => { if(medi) endMeditation(false); else hide($('#mMedi')); };
+$('#mediSound').onclick = () => { unlockAudio(); music.start(); };
+$('#btnMedi').onclick = () => { unlockAudio(); startMeditation(false); };
+
+const music = (() => {
+  let master = null, timers = [], nextChord = 0, ci = 0, playing = false;
+  // Progresión suave: Cmaj9 · Am9 · Fmaj7 · Gsus2 (frecuencias en Hz)
+  const CHORDS = [[130.81,196.00,246.94,293.66,329.63],[110.00,164.81,196.00,246.94,261.63],[87.31,130.81,174.61,220.00,329.63],[98.00,146.83,196.00,220.00,293.66]];
+  const SPARK = [523.25,587.33,659.25,783.99,880.00,1046.5];
+  const CH_LEN = 9;
+  function reverb(){
+    const len = actx.sampleRate*4, buf = actx.createBuffer(2, len, actx.sampleRate);
+    for(let c=0;c<2;c++){ const d = buf.getChannelData(c); for(let i=0;i<len;i++) d[i] = (Math.random()*2-1)*Math.pow(1-i/len, 2.5); }
+    const cv = actx.createConvolver(); cv.buffer = buf; return cv;
+  }
+  function pad(freqs, t0){
+    const lp = actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 900; lp.connect(master.bus);
+    freqs.forEach((f,i) => {
+      ['sine','triangle'].forEach((type,k) => {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = type; o.frequency.value = f; o.detune.value = k ? 6 : -4;
+        const peak = (k ? 0.012 : 0.03) * (i===0 ? 1.3 : 1);
+        g.gain.setValueAtTime(0.0001, t0); g.gain.exponentialRampToValueAtTime(peak, t0+3.5);
+        g.gain.setValueAtTime(peak, t0+CH_LEN-1); g.gain.exponentialRampToValueAtTime(0.0001, t0+CH_LEN+4);
+        o.connect(g).connect(lp); o.start(t0); o.stop(t0+CH_LEN+4.2);
+      });
+    });
+  }
+  function bell(f, t0, vol){
+    [[1,1],[2.01,.35],[3.03,.12]].forEach(([m,a]) => {
+      const o = actx.createOscillator(), g = actx.createGain();
+      o.type='sine'; o.frequency.value = f*m;
+      g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(vol*a, t0+0.02); g.gain.exponentialRampToValueAtTime(0.0001, t0+3.5);
+      o.connect(g).connect(master.bus); o.start(t0); o.stop(t0+3.6);
+    });
+  }
+  function bowl(vol){
+    if(!master) return; const t0 = actx.currentTime + 0.05, f = 196;
+    [[1,.22],[2.76,.09],[5.4,.04]].forEach(([m,a]) => {
+      const o = actx.createOscillator(), g = actx.createGain(), l = actx.createOscillator(), lg = actx.createGain();
+      o.type='sine'; o.frequency.value = f*m; l.frequency.value = 4; lg.gain.value = f*m*0.004; l.connect(lg).connect(o.frequency);
+      g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(a*(vol||1), t0+0.05); g.gain.exponentialRampToValueAtTime(0.0001, t0+11);
+      o.connect(g).connect(master.bus); o.start(t0); l.start(t0); o.stop(t0+11.2); l.stop(t0+11.2);
+    });
+  }
+  function waves(){
+    const len = actx.sampleRate*4, buf = actx.createBuffer(1, len, actx.sampleRate), d = buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = Math.random()*2-1;
+    const src = actx.createBufferSource(); src.buffer = buf; src.loop = true;
+    const lp = actx.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 420;
+    const g = actx.createGain(); g.gain.value = 0.035;
+    const lfo = actx.createOscillator(), lg = actx.createGain(); lfo.frequency.value = 0.08; lg.gain.value = 0.03;
+    lfo.connect(lg).connect(g.gain);
+    src.connect(lp).connect(g).connect(master.bus); src.start(); lfo.start();
+    master.stoppables.push(src, lfo);
+  }
+  function schedule(){
+    if(!playing) return;
+    const t = actx.currentTime;
+    while(nextChord < t + 2){ pad(CHORDS[ci % CHORDS.length], nextChord); ci++; nextChord += CH_LEN; }
+    if(Math.random() < 0.35) bell(SPARK[Math.floor(Math.random()*SPARK.length)], t + 0.3 + Math.random(), 0.03);
+  }
+  return {
+    bowl,
+    start(){
+      unlockAudio(); if(!actx) return;
+      try{ if(navigator.audioSession) navigator.audioSession.type = 'playback'; }catch(e){}
+      if(playing){ if(actx.state==='suspended') actx.resume(); return; }
+      playing = true;
+      const out = actx.createGain(); out.gain.setValueAtTime(0.0001, actx.currentTime); out.gain.exponentialRampToValueAtTime(0.9, actx.currentTime + 4);
+      const bus = actx.createGain(); bus.gain.value = 1;
+      const rv = reverb(), wet = actx.createGain(); wet.gain.value = 0.55;
+      bus.connect(out); bus.connect(rv).connect(wet).connect(out); out.connect(actx.destination);
+      master = {out, bus, stoppables:[]};
+      nextChord = actx.currentTime + 0.1; ci = 0;
+      bowl(1); waves(); schedule();
+      timers.push(setInterval(schedule, 1000));
+    },
+    stop(fade){
+      if(!playing || !master) return;
+      playing = false; timers.forEach(clearInterval); timers = [];
+      const m = master, t = actx.currentTime;
+      m.out.gain.cancelScheduledValues(t); m.out.gain.setValueAtTime(Math.max(0.0001, m.out.gain.value), t); m.out.gain.exponentialRampToValueAtTime(0.0001, t + (fade||3));
+      setTimeout(() => { try{ m.stoppables.forEach(n => n.stop()); m.out.disconnect(); }catch(e){} try{ if(!playing && navigator.audioSession) navigator.audioSession.type = 'auto'; }catch(e){} }, ((fade||3)+12)*1000);
+      master = null;
+    }
+  };
+})();
+
+/* ---------- Ajustes ---------- */
+function syncSwitches(){
+  $('#swFocus').classList.toggle('on', settings.focus);
+  $('#swSound').classList.toggle('on', settings.sound);
+  $('#inShortcut').value = settings.shortcut;
+}
+$('#swFocus').onclick = () => { settings.focus = !settings.focus; saveS(); syncSwitches(); render(); };
+$('#swSound').onclick = () => { settings.sound = !settings.sound; saveS(); syncSwitches(); unlockAudio(); chime(); };
+$('#inShortcut').onchange = e => { settings.shortcut = e.target.value.trim() || 'Estudio'; saveS(); };
+$('#btnSettings').onclick = () => { syncSwitches(); show('#mSettings'); };
+$('#btnMain').onclick = onMain;
+$('#btnStop').onclick = onStop;
+
+/* Demo */
+$('#dAddDay').onclick = () => {
+  const st = demoState(); const t = st.current ? st.current.target : 30;
+  if(st.todayMinutes < t){ queue.push({id:uid(), date:todayStr(), minutes:t-st.todayMinutes, method:'demo'}); LS.set('queue', queue); }
+  hide($('#mSettings')); flush();
+};
+$('#dNext').onclick = () => { LS.set('demoOffset', LS.get('demoOffset',0)+1); T={status:'idle'}; saveT(); hide($('#mSettings')); flush(); say('idle'); toast('Buenos días ☀️ Ahora es '+niceDate(todayStr())); };
+$('#dReset').onclick = () => { ['demoSessions','demoStart','demoOffset','known','opened','doneShown','state','queue','timer'].forEach(k=>{ try{localStorage.removeItem('reto:'+k);}catch(e){} }); location.reload(); };
+
+/* ---------- Arranque ---------- */
+syncSwitches();
+if(state) render();
+flush();
+say(T.status==='study' ? 'study' : T.status==='break' ? 'break' : 'idle');
+setInterval(tick, 500);
+setInterval(() => { if(!document.hidden) flush(); }, 5*60*1000);
+document.addEventListener('visibilitychange', () => { if(!document.hidden){ tick(); flush(); } });
+addEventListener('online', flush);
+if('serviceWorker' in navigator && location.protocol==='https:') navigator.serviceWorker.register('sw.js').catch(()=>{});
+})();
+</script>
+</body>
+</html>
